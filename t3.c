@@ -224,11 +224,27 @@ bool queue_push(queue_t *queue, data_t value) {
             return false;
         }
     }
-
     // insere no final do buffer
     size_t end = (queue->ini + queue->len) % queue->cap;
     queue->data[end] = value;
     queue->len += 1;
+    return true;
+}
+
+static inline attribute(nonnull, hot, nothrow);
+/**
+ * Remove valor do topo da pilha.
+ *
+ * Retorna 'false' se estiver vazio.
+ */
+bool queue_pop(queue_t * restrict queue, data_t * restrict data) {
+    if unlikely(queue->len == 0) {
+        return false;
+    }
+    // remove da primeira posição
+    *data = queue->data[queue->ini];
+    queue->ini += 1;
+    queue->len -= 1;
     return true;
 }
 
