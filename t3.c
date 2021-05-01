@@ -20,6 +20,8 @@
 #define unlikely(x)      (x)
 #endif
 
+// Representação de infinito no cálculo do N. de Erdős
+#define INFINITY    (SIZE_MAX - 1)
 
 /* Representação do grafo. */
 typedef struct graph {
@@ -29,12 +31,12 @@ typedef struct graph {
     bool adj[];
 } graph_t;
 
-static inline
+static
 /* Leitura do grafo. */
 graph_t *read_graph(size_t order, size_t size)
 attribute(malloc, cold, nothrow);
 
-static inline
+static
 /* Cálculo do maior Número de Erdős. */
 size_t max_erdos_number(const graph_t *graph)
 attribute(nonnull, cold, nothrow);
@@ -59,7 +61,14 @@ int main(void) {
 
     // cálculo do resultado
     size_t max = max_erdos_number(graph);
-    if (max == SIZE_MAX) {
+    if unlikely(max == SIZE_MAX) {
+        fprintf(stderr, "Erro: Problema no cálculo do resultado.\n");
+        free(graph);
+        return EXIT_FAILURE;
+    }
+
+    // apresentação o resultado
+    if (max == INFINITY) {
         printf("infinito\n");
     } else {
         printf("%zu\n", max);
@@ -123,11 +132,44 @@ graph_t *read_graph(size_t order, size_t size) {
     return g;
 }
 
+/* * * * * *
+ * CÁLCULO *
+ * * * * * */
+
+static inline attribute(hot, nothrow)
+/**
+ *  Busca do maior caminho em 'graph' partindo de 'initial'.
+ * O nó inicial não é contado.
+ *
+ * Usa um buffer externo para marcar nós visitados.
+ */
+size_t longest_path(const graph_t * restrict _graph, bool * restrict _visited, size_t initial) {
+    return 0;
+}
+
 /**
  *  Cálculo do maior Número de Erdős do grafo dado.
  *
- * Retorna SIZE_MAX se não existir tal número.
+ * Retorna 'SIZE_MAX' em erro de alocação e 'INFINITY',
+ * se não existir tal número, i.e. é infinito.
  */
-size_t max_erdos_number(const graph_t *_graph) {
-    return SIZE_MAX;
+size_t max_erdos_number(const graph_t *graph) {
+    // nós visitados na busca
+    bool *visited = calloc(graph->len, sizeof(bool));
+    if unlikely(visited == NULL) return SIZE_MAX;
+
+    // maior caminho encontrado
+    size_t path_len = longest_path(graph, visited, 0);
+
+    // checa se todos os nós foram visitados
+    for (size_t i = 0; i < graph->len; i++) {
+        if (!visited[i]) {
+            free(visited);
+            return INFINITY;
+        }
+    }
+    free(visited);
+
+    // caminho mais longo, visitando todos os nós
+    return path_len;
 }
