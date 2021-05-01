@@ -132,6 +132,55 @@ graph_t *read_graph(size_t order, size_t size) {
     return g;
 }
 
+/* * * * * * * *
+ * PILHA - BFS *
+ * * * * * * * */
+
+// Dado da pilha para BFS.
+typedef struct data {
+    // vértice atual
+    uint16_t node;
+    // tamanho do caminho até lá
+    uint16_t len;
+} data_t;
+
+// Pilha para BFS, implementada por
+// um buffer circular.
+typedef struct queue {
+    // capacidade
+    size_t cap;
+    // início do buffer
+    size_t ini;
+    // tamanho do buffer
+    size_t len;
+    // ponteiro do buffer
+    data_t *data;
+} queue_t;
+
+
+static attribute(const, cold, nothrow)
+/**
+ * Constrói uma nova pilha vazia.
+ */
+queue_t queue_new(void) {
+    return (queue_t) {
+        .cap = 0,
+        .ini = 0,
+        .len = 0,
+        .data = NULL
+    };
+}
+
+static attribute(nonnull, cold, nothrow)
+/**
+ * Desaloca memória usada na pilha.
+ */
+void queue_destroy(queue_t *queue) {
+    if (queue->data != NULL) {
+        free(queue->data);
+    }
+}
+
 /* * * * * *
  * CÁLCULO *
  * * * * * */
