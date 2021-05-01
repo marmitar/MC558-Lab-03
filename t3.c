@@ -181,6 +181,57 @@ void queue_destroy(queue_t *queue) {
     }
 }
 
+static attribute(nonnull, cold, nothrow)
+/**
+ * Tenta aumentar a capacidade da pilha.
+ *
+ * Retorna se houve sucesso na operação.
+ */
+bool queue_increase_size(queue_t *queue) {
+    size_t new_cap;
+    data_t *new;
+    // primeira alocação
+    if unlikely(queue->data == NULL) {
+        new_cap = 32;
+        new = malloc(new_cap * sizeof(data_t));
+    // realocação do buffer
+    } else {
+        new_cap = 2 * queue->cap;
+        new = reallocarray(queue->data, new_cap, sizeof(data_t));
+    }
+    // erro de alocação
+    if unlikely(new == NULL) return false;
+
+    // move os valores do final do buffer para suas novas posições
+    memcpy(new + queue->cap, new, queue->ini);
+    // ajusta a capacidade e o novo ponteiro
+    queue->cap = new_cap;
+    queue->data = new;
+    return true;
+}
+
+static inline attribute(nonnull, hot, nothrow);
+/**
+ * Insere novo valor na pilha.
+ *
+ * Retorna 'false' em erro de alocação.
+ */
+bool queue_push(queue_t *queue, data_t value) {
+    // aumenta espeço para novos dados
+    if unlikely(queue->len >= queue->cap) {
+        bool ok = queue_increase_size(queue);
+        if unlikely(!ok) {
+            return false;
+        }
+    }
+
+    // insere no final do buffer
+    size_t end = (queue->ini + queue->len) % queue->cap;
+    queue->data[end] = value;
+    queue->len += 1;
+    return true;
+}
+
 /* * * * * *
  * CÁLCULO *
  * * * * * */
