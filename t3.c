@@ -3,6 +3,7 @@
  * Tiago de Paula - RA 187679
  */
 #include <stdlib.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -22,6 +23,10 @@
 
 /* Representação do grafo. */
 typedef struct graph {
+    // número de vértices
+    size_t len;
+    // matriz de adjcências
+    bool adj[];
 } graph_t;
 
 static inline
@@ -65,14 +70,57 @@ int main(void) {
     return EXIT_SUCCESS;
 }
 
+/* * * * * *
+ * LEITURA *
+ * * * * * */
+
+// Acesso do posição (i,j) na matriz de adjacências de 'G'.
+#define adjacent(G, i, j) \
+    (G)->adj[((i) * (G)->len + (j))]
+
+static inline attribute(malloc, cold, nothrow)
+/**
+ *  Aloca a matriz de adjacências de um grafo com
+ * '|V| = len', inicialmente vazio (sem arestas).
+ *
+ * Returna NULL em erro de alocação.
+ */
+graph_t *alloc_graph(size_t len) {
+    if unlikely(len >= SIZE_MAX / sizeof(bool) / 2) return NULL;
+
+    size_t fixed = offsetof(graph_t, adj);
+    graph_t *new = calloc(fixed + len * len * sizeof(bool), 1);
+    if unlikely(new == NULL) return NULL;
+
+    new->len = len;
+    return new;
+}
+
 /**
  *  Leitura do grafo pela entrada padrão.
  *
  * Retorna NULL em erro de alocação, problema de leitura
  * ou se os valores lidos não fazem sentido.
  */
-graph_t *read_graph(size_t _order, size_t _size) {
-    return NULL;
+graph_t *read_graph(size_t order, size_t size) {
+    graph_t *g = alloc_graph(order);
+    if unlikely(g == NULL) return NULL;
+
+    for (size_t i = 0; i < size; i++) {
+        size_t A, B;
+        // leitura dos co-autores
+        int rv = scanf("%zu %zu", &A, &B);
+        // que devem ser menores que n(g)
+        if unlikely(rv < 2 || A >= order || B >= order) {
+            free(g);
+            return NULL;
+        }
+
+        // marca os co-autores no grafo
+        adjacent(g, A, B) = true;
+        adjacent(g, B, A) = true;
+    }
+    return g;
 }
 
 /**
