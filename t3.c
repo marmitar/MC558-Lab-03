@@ -86,7 +86,7 @@ int main(void) {
 
 // Acesso do posição (i,j) na matriz de adjacências de 'G'.
 #define adjacent(G, i, j) \
-    (G)->adj[((i) * (G)->len + (j))]
+    ((G)->adj[((i) * (G)->len + (j))])
 
 static inline attribute(malloc, cold, nothrow)
 /**
@@ -189,29 +189,22 @@ static attribute(nonnull, cold, nothrow)
  * Retorna se houve sucesso na operação.
  */
 bool queue_increase_size(queue_t *queue) {
-    size_t new_cap;
-    data_t *new;
-    // primeira alocação
-    if unlikely(queue->data == NULL) {
-        new_cap = 32;
-        new = malloc(new_cap * sizeof(data_t));
-    // realocação do buffer
-    } else {
-        new_cap = 2 * queue->cap;
-        new = reallocarray(queue->data, new_cap, sizeof(data_t));
-    }
+    // inicia o buffer com 32 btyes e dobra nas chamadas sequintes
+    size_t new_cap = (queue->cap > 0)? 2 * queue->cap : 32;
+
+    data_t *new = realloc(queue->data, new_cap * sizeof(data_t));
     // erro de alocação
     if unlikely(new == NULL) return false;
 
     // move os valores do final do buffer para suas novas posições
-    memcpy(new + queue->cap, new, queue->ini);
+    memcpy(new + queue->cap, new, queue->ini * sizeof(data_t));
     // ajusta a capacidade e o novo ponteiro
     queue->cap = new_cap;
     queue->data = new;
     return true;
 }
 
-static inline attribute(nonnull, hot, nothrow);
+static inline attribute(nonnull, hot, nothrow)
 /**
  * Insere novo valor na pilha.
  *
@@ -232,7 +225,7 @@ bool queue_push(queue_t *queue, data_t value) {
     return true;
 }
 
-static inline attribute(nonnull, hot, nothrow);
+static inline attribute(nonnull, hot, nothrow)
 /**
  * Remove valor do topo da pilha.
  *
@@ -244,7 +237,7 @@ bool queue_pop(queue_t * restrict queue, data_t * restrict data) {
     }
     // remove da primeira posição
     *data = queue->data[queue->ini];
-    queue->ini += 1;
+    queue->ini = (queue->ini + 1) % queue->cap;
     queue->len -= 1;
     return true;
 }
@@ -279,11 +272,12 @@ size_t longest_path(const graph_t * restrict graph, bool * restrict visited, siz
     while (queue_pop(&queue, &data)) {
         visited[data.node] = true;
 
-        for (size_t i = 0; i < graph->len; i++) {
+        for (uint16_t i = 0; i < graph->len; i++) {
             // busca os nós adjacentes não visitados
             if (adjacent(graph, data.node, i) && !visited[i]) {
                 // e empilha com um caminho maior
-                ok = queue_push(&queue, (data_t){.node = i, .len = data.len+1});
+                data_t new = { .node = i, .len = data.len + 1 };
+                ok = queue_push(&queue, new);
 
                 // erro de alocação
                 if unlikely(!ok) {

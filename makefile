@@ -23,7 +23,7 @@ run: main
 
 test: main
 	@for arq in $$(ls tests/*.in); do \
-		./$< <$$arq | diff -qs - $$(echo $$arq | sed s/.in/.res/g); \
+		./$< <$$arq | diff -qs - $$(echo $$arq | sed s/.in/.out/g); \
 	done
 
 memcheck: main
