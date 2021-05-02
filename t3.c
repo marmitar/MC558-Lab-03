@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 #ifdef __GNUC__
 // Atributos do GCC
@@ -252,15 +253,52 @@ bool queue_pop(queue_t * restrict queue, data_t * restrict data) {
  * CÁLCULO *
  * * * * * */
 
-static inline attribute(hot, nothrow)
+static attribute(nonnull, hot, nothrow)
 /**
  *  Busca do maior caminho em 'graph' partindo de 'initial'.
- * O nó inicial não é contado.
+ * Um buffer externo com tamanho 'graph->len' é usado para
+ * marcar nós visitados.
  *
- * Usa um buffer externo para marcar nós visitados.
+ * Retorna SIZE_MAX em erro de alocação ou entrada inválida.
  */
-size_t longest_path(const graph_t * restrict _graph, bool * restrict _visited, size_t initial) {
-    return 0;
+size_t longest_path(const graph_t * restrict graph, bool * restrict visited, size_t initial) {
+    // entrada inválida
+    if unlikely(initial >= graph->len) return SIZE_MAX;
+
+    // pilha para o BFS
+    queue_t queue = queue_new();
+    // que começa com o nó inicial
+    bool ok = queue_push(&queue, (data_t) {.node = initial, .len = 0});
+    if unlikely(!ok) return SIZE_MAX;
+
+    // maior caminho até então
+    size_t max_len = 0;
+
+    data_t data;
+    // desempilha o próximo vértice do BFS, até acabar
+    while (queue_pop(&queue, &data)) {
+        visited[data.node] = true;
+
+        for (size_t i = 0; i < graph->len; i++) {
+            // busca os nós adjacentes não visitados
+            if (adjacent(graph, data.node, i) && !visited[i]) {
+                // e empilha com um caminho maior
+                ok = queue_push(&queue, (data_t){.node = i, .len = data.len+1});
+
+                // erro de alocação
+                if unlikely(!ok) {
+                    queue_destroy(&queue);
+                    return SIZE_MAX;
+                }
+            }
+        }
+        // ajusta o maior caminho
+        if (max_len < data.len) {
+            max_len = data.len;
+        }
+    }
+    queue_destroy(&queue);
+    return max_len;
 }
 
 /**
@@ -276,6 +314,7 @@ size_t max_erdos_number(const graph_t *graph) {
 
     // maior caminho encontrado
     size_t path_len = longest_path(graph, visited, 0);
+    if unlikely(path_len == SIZE_MAX) return SIZE_MAX;
 
     // checa se todos os nós foram visitados
     for (size_t i = 0; i < graph->len; i++) {
