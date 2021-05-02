@@ -96,7 +96,7 @@ static inline attribute(malloc, cold, nothrow)
  * Returna NULL em erro de alocação.
  */
 graph_t *alloc_graph(size_t len) {
-    if unlikely(len >= SIZE_MAX / sizeof(bool) / 2) return NULL;
+    if unlikely(len >= SIZE_MAX / sizeof(bool) / len) return NULL;
 
     size_t fixed = offsetof(graph_t, adj);
     graph_t *new = calloc(fixed + len * len * sizeof(bool), 1);
