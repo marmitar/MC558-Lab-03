@@ -270,6 +270,9 @@ size_t longest_path(const graph_t * restrict graph, bool * restrict visited, siz
     data_t data;
     // desempilha o próximo vértice do BFS, até acabar
     while (queue_pop(&queue, &data)) {
+        if (visited[data.node]) {
+            continue;
+        }
         visited[data.node] = true;
 
         for (uint16_t i = 0; i < graph->len; i++) {
