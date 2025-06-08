@@ -1,4 +1,7 @@
-# MC558 - Tarefa 3
+# Análise de Algoritmos II (MC558) - Tarefa 3
+
+- [Enunciado](./enunc.pdf)
+- [Solução](./t3.c)
 
 ## Problema
 
